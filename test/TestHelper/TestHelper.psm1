@@ -92,7 +92,7 @@ function Connect-AzureServicePrincipal
     }
 }
 
-function New-AzureCosmosDbAccount
+function New-AzureTestCosmosDbAccount
 {
     [CmdletBinding()]
     param
@@ -109,11 +109,6 @@ function New-AzureCosmosDbAccount
     try
     {
         Write-Verbose -Message ('Creating Cosmos DB test account {0}.' -f $AccountName)
-
-        # Create resource group
-        New-AzureRmResourceGroup `
-            -Name $ResourceGroupName `
-            -Location 'EastUs'
 
         # Build hashtable of deployment parameters
         $azureDeployFolder = Join-Path -Path $PSScriptRoot -ChildPath 'AzureDeploy'
@@ -137,7 +132,7 @@ function New-AzureCosmosDbAccount
     }
 }
 
-function Remove-AzureCosmosDbAccount
+function Remove-AzureTestCosmosDbAccount
 {
     [CmdletBinding()]
     param
@@ -167,8 +162,63 @@ function Remove-AzureCosmosDbAccount
     }
 }
 
+function New-AzureTestCosmosDbResourceGroup
+{
+    [CmdletBinding()]
+    param
+    (
+        [Parameter(Mandatory = $true)]
+        [System.String]
+        $ResourceGroupName,
+
+        [Parameter()]
+        [System.String]
+        $Location = 'East US'
+    )
+
+    try
+    {
+        Write-Verbose -Message ('Creating test Azure Resource Group {0} in {1}.' -f $ResourceGroupName,$Location)
+
+        $null = New-AzureRmResourceGroup `
+            -Name $ResourceGroupName `
+            -Location $Location
+    }
+    catch [System.Exception]
+    {
+        Write-Error -Message "An error occured during the creation of the Azure Resource Group.`n$($_.exception.message)"
+    }
+}
+
+function Remove-AzureTestCosmosDbResourceGroup
+{
+    [CmdletBinding()]
+    param
+    (
+        [Parameter(Mandatory = $true)]
+        [System.String]
+        $ResourceGroupName
+    )
+
+    try
+    {
+        Write-Verbose -Message ('Removing test Azure Resource Group {0}.' -f $ResourceGroupName)
+
+        $null = Remove-AzureRmResourceGroup `
+            -Name $ResourceGroupName `
+            -Force `
+            -AsJob
+    }
+    catch [System.Exception]
+    {
+        Write-Error -Message "An error occured during the removal of the Azure Resource Group.`n$($_.exception.message)"
+    }
+}
+
 Export-ModuleMember -Function `
     Get-AzureServicePrincipal, `
     Connect-AzureServicePrincipal, `
-    New-AzureCosmosDbAccount, `
-    Remove-AzureCosmosDbAccount
+    New-AzureTestCosmosDbAccount, `
+    Remove-AzureTestCosmosDbAccount, `
+    New-AzureTestCosmosDbResourceGroup, `
+    Remove-AzureTestCosmosDbResourceGroup

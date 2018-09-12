@@ -20,20 +20,36 @@ Properties {
 Task Default -Depends Build
 
 Task Init {
-    $separator
-
     Set-Location -Path $ProjectRoot
+
+    $separator
     'Build System Details:'
     Get-Item -Path ENV:BH*
     "`n"
+
+    $separator
+    'Other Environment Variables:'
+    Get-ChildItem -Path ENV:
+    "`n"
+
+    $separator
     'PowerShell Details:'
     $PSVersionTable
-
     "`n"
 }
 
 Task Test -Depends Init {
     $separator
+
+    # Prepare test environment by ensuring appropriate version of AzureRM modules are installed
+    if ($PSVersionTable.PSEdition -eq 'Core')
+    {
+        Install-ModuleMultiScoped -Name AzureRM.NetCore
+    }
+    else
+    {
+        Install-ModuleMultiScoped -Name AzureRM
+    }
 
     # Execute tests
     $testResultsFile = Join-Path -Path $ProjectRoot -ChildPath 'test\TestResults.xml'
@@ -47,16 +63,17 @@ Task Test -Depends Init {
     # Prepare and uploade code coverage
     if ($testResults.CodeCoverage)
     {
-        'Preparing CodeCoverage'
-        Import-Module `
-            -Name (Join-Path -Path $ProjectRoot -ChildPath '.codecovio\CodeCovio.psm1')
-
-        $jsonPath = Export-CodeCovIoJson `
-            -CodeCoverage $testResults.CodeCoverage `
-            -RepoRoot $ProjectRoot
-
+        # Only bother generating code coverage in AppVeyor
         if ($ENV:BHBuildSystem -eq 'AppVeyor')
         {
+            'Preparing CodeCoverage'
+            Import-Module `
+                -Name (Join-Path -Path $ProjectRoot -ChildPath '.codecovio\CodeCovio.psm1')
+
+            $jsonPath = Export-CodeCovIoJson `
+                -CodeCoverage $testResults.CodeCoverage `
+                -RepoRoot $ProjectRoot
+
             'Uploading CodeCoverage to CodeCov.io'
             try
             {
@@ -107,7 +124,7 @@ Task Build -Depends Test {
 
     # Generate the next version by adding the build system build number to the manifest version
     $manifestPath = Join-Path -Path $ProjectRoot -ChildPath 'src/CosmosDB.psd1'
-    $newVersion = Get-NewVersionNumber `
+    $newVersion = New-VersionNumber `
         -ManifestPath $manifestPath `
         -Build $ENV:BHBuildNumber
 
@@ -132,7 +149,7 @@ Task Build -Depends Test {
     $null = Copy-Item -Path (Join-Path -Path $ProjectRoot -ChildPath 'src/lib') -Destination $VersionFolder -Recurse
     $null = Copy-Item -Path (Join-Path -Path $ProjectRoot -ChildPath 'src/formats') -Destination $VersionFolder -Recurse
     $null = Copy-Item -Path (Join-Path -Path $ProjectRoot -ChildPath 'src/types') -Destination $VersionFolder -Recurse
-    $null = Copy-Item -Path (Join-Path -Path $ProjectRoot -ChildPath 'src/en-us') -Destination $VersionFolder -Recurse
+    $null = Copy-Item -Path (Join-Path -Path $ProjectRoot -ChildPath 'src/en-US') -Destination $VersionFolder -Recurse
     $null = Copy-Item -Path (Join-Path -Path $ProjectRoot -ChildPath 'LICENSE') -Destination $VersionFolder
     $null = Copy-Item -Path (Join-Path -Path $ProjectRoot -ChildPath 'README.md') -Destination $VersionFolder
     $null = Copy-Item -Path (Join-Path -Path $ProjectRoot -ChildPath 'CHANGELOG.md') -Destination $VersionFolder
@@ -175,7 +192,7 @@ Task Deploy -Depends Build {
 
     # Generate the next version by adding the build system build number to the manifest version
     $manifestPath = Join-Path -Path $ProjectRoot -ChildPath 'src/CosmosDB.psd1'
-    $newVersion = Get-NewVersionNumber `
+    $newVersion = New-VersionNumber `
         -ManifestPath $manifestPath `
         -Build $ENV:BHBuildNumber
 
@@ -290,7 +307,11 @@ Task Deploy -Depends Build {
     }
 }
 
-function Get-NewVersionNumber
+<#
+    .SYNOPSIS
+        Generate a new version number.
+#>
+function New-VersionNumber
 {
     param
     (
@@ -329,6 +350,10 @@ function Get-NewVersionNumber
     return $newVersion
 }
 
+<#
+    .SYNOPSIS
+        Safely execute a Git command.
+#>
 function Invoke-Git
 {
     param
@@ -346,5 +371,36 @@ function Invoke-Git
     catch
     {
         Write-Warning -Message $_
+    }
+}
+
+<#
+    .SYNOPSIS
+        Try to install a module to the machine scope, but try the
+        CurrentUser scope if not allowed.
+#>
+function Install-ModuleMultiScoped
+{
+    param
+    (
+        [Parameter(Mandatory = $true)]
+        [System.String]
+        $Name
+    )
+
+    $installModuleParameters = @{
+        Name = $Name
+        Force = $true
+        AllowClobber = $true
+        Repository = 'PSGallery'
+    }
+
+    try
+    {
+        Install-Module @installModuleParameters
+    }
+    catch
+    {
+        Install-Module @installModuleParameters -Scope CurrentUser
     }
 }

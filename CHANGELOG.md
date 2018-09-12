@@ -1,5 +1,30 @@
 # Change Log
 
+## 2.1.7.675
+
+- Added support for running CI in Azure DevOps Pipelines - fixes [Issue #174](https://github.com/PlagueHO/CosmosDB/issues/174)
+
+## 2.1.7.635
+
+- Added `New-CosmosDbAccount` function for creating a new Cosmos DB
+  account in Azure - fixes [Issue #111](https://github.com/PlagueHO/CosmosDB/issues/111)
+- Added `Get-CosmosDbAccount` function for retrieving the properties
+  of an existing account in Azure - fixes [Issue #159](https://github.com/PlagueHO/CosmosDB/issues/159)
+- Added `Set-CosmosDbAccount` function for updating an existing Cosmos DB
+  account in Azure - fixes [Issue #160](https://github.com/PlagueHO/CosmosDB/issues/160)
+- Added `Remove-CosmosDbAccount` function for removing an existing Cosmos DB
+  account in Azure - fixes [Issue #161](https://github.com/PlagueHO/CosmosDB/issues/161)
+- Added OSx and Linux PowerShell Core continuous integration using
+  TravisCI.
+- Improved CI/CodeCoverage badges in README.MD.
+- Improved build process to handle build environments that do not
+  have Administrator/Root access.
+- Skip test for `Convert-CosmosDbRequestBody` when run in Linux/OSx using
+  PowerShell Core due to behavior difference - see [PowerShell Core #Issue](https://github.com/PowerShell/PowerShell/issues/7693)
+- Skip integration tests for `New-CosmosDbAccount` and `Set-CosmosDbAccount`
+  when run in AppVeyor due to exception occuring in `New-AzureRmResource` and
+  `Set-AzureRmResource` cmdlets because of Newtonsoft.Json version conflict.
+
 ## 2.1.6.561
 
 - Updated partition key handling when creating collections to allow for

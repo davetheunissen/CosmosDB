@@ -22,9 +22,9 @@
             "properties": {
                 "databaseAccountOfferType": "Standard",
                 "consistencyPolicy": {
-                    "defaultConsistencyLevel": "Session",
-                    "maxIntervalInSeconds": 5,
-                    "maxStalenessPrefix": 100
+                    "defaultConsistencyLevel": "BoundedStaleness",
+                    "maxIntervalInSeconds": 50,
+                    "maxStalenessPrefix": 50
                 },
                 "name": "[parameters('accountName')]"
             },
